@@ -3,59 +3,58 @@
 #include <GyverPower.h>
 #include <GyverOLED.h>
 #include <EncButton.h>
+#include "menu.h"
 #include "unit.h"
+#include "unit_params.h"
 #include "moisture_sensor.h"
 #include "pump.h"
 
-
-const unsigned long RUN_FREQUENCY = 10000; // 1s = 1000 How often turn on waterring unit 
-const unsigned long RUN_DURATION = 7000;  // 1s = 1000 How long pump may on. This restriction uses for prevent overflow pot
 const uint32_t SLEEP_DELAY = 20000;
 
 // https://github.com/GyverLibs/GyverOS
 GyverOS<1> OS;
 
 // https://github.com/GyverLibs/EncButton
-EncButton<EB_TICK, PD4, PD5, PD6> encoder;
+EncButton<EB_TICK, PD3, PD4, PD2> enc;
+
+// дефайн перед подключением либы - использовать microWire (лёгкая либа для I2C)
+#define USE_MICRO_WIRE
 
 // https://github.com/GyverLibs/GyverOLED
-GyverOLED<SSH1106_128x64> oled;
+GyverOLED<SSD1306_128x64, OLED_BUFFER> oled;
 
-MoistureSensor sensor1(PD2, A1);
+bool wakeUpMenu;
 
-Pump pump1(PD3);
+UnitParams unitParams1(60, 85, 7, 43200);
 
-Unit unit1(&sensor1, &pump1, RUN_FREQUENCY, RUN_DURATION); // Use defaul unit humidity
+Menu menu(&enc, &oled);
 
-void process1() {
-  unit1.Execute();
+MoistureSensor sensor1(PD6, A1);
 
-  // Vaoltage level from analog read port
-  int value = 0;
-  float voltage;
-  float perc;
+Pump pump1(PD5);
 
-  value = analogRead(A0);
-  voltage = value * 5.0/1023;
-  perc = map(voltage, 3.6, 4.2, 0, 100);
-  Serial.print("Voltage= ");
-  Serial.println(voltage);
-  Serial.print("Battery level= ");
-  Serial.print(perc);
-  Serial.println(" %");
+Unit unit1(&sensor1, &pump1, &unitParams1);
 
-  oled.clear();
-  oled.home();
-  oled.print("Voltage: ");
-  oled.print(voltage);
-  oled.update();
+void process1()
+{
+  unit1.execute();
 }
 
-bool isAllUnitsDone() {
-  return !unit1.isRunning();
+bool isAllUnitsDone()
+{
+  return !unit1.isRunning() && !menu.isActive();
 }
 
-void setup() {
+void isr()
+{
+  wakeUpMenu = true;
+
+  power.wakeUp();
+  Serial.println("Power wake up");
+}
+
+void setup()
+{
   Serial.begin(9600);
 
   // калибровка таймаутов для максимальной точности sleepDelay
@@ -66,68 +65,43 @@ void setup() {
   power.calibrate(9191);
   power.setSleepMode(POWERDOWN_SLEEP);
 
-  // Display init
-  oled.init();
-  oled.clear();
+  unit1.run();
 
-  // Encoder init
-  encoder.counter = 100;
+  menu.addUnit(&unitParams1);
+  menu.turnOn();
+  menu.printMenu();
 
-  unit1.Run();
-
-  OS.attach(0, process1, 1000);  // Check each second
+  OS.attach(0, process1, 1000); // Check each second
 }
 
-void loop() {
+void loop()
+{
   OS.tick();
-  encoder.tick();
+  menu.tick();
 
-  // ------------=Start encoder example=------------
-  if (encoder.isTurn()) {               // любой поворот
-    Serial.print("turn ");
-    Serial.println(encoder.counter);    // вывод счётчика
-  }
-
-  if (encoder.isLeft()) {
-    if (encoder.isFast()) Serial.println("fast left");
-    else Serial.println("left");
-  }
-
-  if (encoder.isRight()) {
-    if (encoder.isFast()) Serial.println("fast right");
-    else Serial.println("right");
-  }
-
-  if (encoder.isLeftH()) Serial.println("leftH");
-  if (encoder.isRightH()) Serial.println("rightH");
-  if (encoder.isClick()) Serial.println("click");
-  if (encoder.isHolded()) Serial.println("holded");
-  if (encoder.isStep()) Serial.println("step");
-
-  if (encoder.isPress()) Serial.println("press");
-  if (encoder.isClick()) Serial.println("click");
-  if (encoder.isRelease()) Serial.println("release");
-
-  if (encoder.hasClicks(1)) Serial.println("1 click");
-  if (encoder.hasClicks(2)) Serial.println("2 click");
-  if (encoder.hasClicks(3)) Serial.println("3 click");
-  if (encoder.hasClicks(5)) Serial.println("5 click");
-
-  if (encoder.hasClicks()) Serial.println(encoder.clicks);
-  // -----------=End encoder example=-------------
-  
   // Check all process done
   // Deep sleep
-  // if (isAllUnitsDone()) {
-  //   Serial.println("Everything done, go to sleep");
-  //   delay(100);
+  if (isAllUnitsDone())
+  {
+    Serial.println("Everything done, go to sleep");
+    attachInterrupt(0, isr, FALLING);
+    Serial.println("WakeUp interrupt attached");
 
-  //   power.sleepDelay(SLEEP_DELAY);
+    // Wait for print to serial
+    delay(100);
 
-  //   Serial.println("Wake up and start cycle");
-  //   delay(100);
+    power.sleepDelay(SLEEP_DELAY);
 
-  //   // Renew process tikens
-  //   unit1.Run();
-  // }
+    detachInterrupt(0);
+    Serial.println("WakeUp interrupt deattached, start cycle");
+
+    // Renew process tikens
+    unit1.run();
+
+    if (wakeUpMenu) {
+      menu.wakeUp();
+      
+      wakeUpMenu = false;
+    }
+  }
 }
