@@ -48,9 +48,7 @@ bool isAllUnitsDone()
 void isr()
 {
   wakeUpMenu = true;
-
   power.wakeUp();
-  Serial.println("Power wake up");
 }
 
 void setup()
@@ -65,11 +63,11 @@ void setup()
   power.calibrate(9191);
   power.setSleepMode(POWERDOWN_SLEEP);
 
-  unit1.run();
-
   menu.addUnit(&unitParams1);
   menu.turnOn();
   menu.printMenu();
+
+  unit1.run();
 
   OS.attach(0, process1, 1000); // Check each second
 }
@@ -83,9 +81,9 @@ void loop()
   // Deep sleep
   if (isAllUnitsDone())
   {
-    Serial.println("Everything done, go to sleep");
+    Serial.println(F("Everything done, go to sleep"));
     attachInterrupt(0, isr, FALLING);
-    Serial.println("WakeUp interrupt attached");
+    // Serial.println("WakeUp interrupt attached");
 
     // Wait for print to serial
     delay(100);
@@ -93,14 +91,14 @@ void loop()
     power.sleepDelay(SLEEP_DELAY);
 
     detachInterrupt(0);
-    Serial.println("WakeUp interrupt deattached, start cycle");
+    // Serial.println("WakeUp interrupt deattached, start cycle");
 
     // Renew process tikens
     unit1.run();
 
-    if (wakeUpMenu) {
+    if (wakeUpMenu)
+    {
       menu.wakeUp();
-      
       wakeUpMenu = false;
     }
   }

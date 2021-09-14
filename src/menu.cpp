@@ -73,7 +73,7 @@ void Menu::printSubMenu()
     _display->print("s");
 
     _display->setCursor(75, 4);
-    printTimeFromSeconds(_unitParamList[getCurrentUnitIdx()]->getRunFrequency());
+    printTimeFromMillis(_unitParamList[getCurrentUnitIdx()]->getRunFrequency());
 
     printCursorSubMenu(_subMenuPointer);
 
@@ -99,7 +99,7 @@ bool Menu::isActive()
 
 void Menu::turnOn()
 {
-    Serial.println("Turn on menu");
+    Serial.println(F("Turn on menu"));
 
     _isOn = true;
     _lasActivity = millis();
@@ -111,7 +111,7 @@ void Menu::turnOn()
 
 void Menu::wakeUp()
 {
-    Serial.println("Menu waked up");
+    Serial.println(F("Menu waked up"));
 
     _isOn = true;
     _isFirstClickAfterTurnOn = true;
@@ -130,7 +130,7 @@ void Menu::tick()
 
         _display->setPower(false);
 
-        Serial.println("Turn off menu");
+        Serial.println(F("Turn off menu"));
     }
 
     if (_encoder->isClick())
@@ -315,6 +315,15 @@ void Menu::loadParams(uint8_t idx, UnitParams *params)
     unsigned long containerSize = sizeof(container);
 
     eeprom_read_block((void *)&container, (void *)(containerSize * idx), containerSize);
+
+    // Serial.print("minHumidity: ");
+    // Serial.print(container.minHumidity);
+    // Serial.print(" maxHumidity: ");
+    // Serial.print(container.maxHumidity);
+    // Serial.print(" runDuration: ");
+    // Serial.print(container.runDuration);
+    // Serial.print(" runFrequency: ");
+    // Serial.println(container.runFrequency);
 
     params->setMinHumidity(container.minHumidity);
     params->setMaxHumidity(container.maxHumidity);

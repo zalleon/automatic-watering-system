@@ -9,17 +9,6 @@ UnitParams::UnitParams(uint8_t minHumidity, uint8_t maxHumidity, uint8_t runDura
 
     _lastRunTime = 0;
     _currentHumidity = 0;
-    _isChanged = false;
-}
-
-bool UnitParams::isChanged()
-{
-    return _isChanged;
-}
-
-void UnitParams::commitChanes()
-{
-    _isChanged = false;
 }
 
 uint8_t UnitParams::getMinHumidity()
@@ -41,7 +30,6 @@ void UnitParams::setMinHumidity(uint8_t v)
 
     if (_minHumidity != v)
     {
-        _isChanged = true;
         _minHumidity = v;
     }
 }
@@ -75,7 +63,6 @@ void UnitParams::setMaxHumidity(uint8_t v)
 
     if (_maxHumidity != v)
     {
-        _isChanged = true;
         _maxHumidity = v;
     }
 }
@@ -109,7 +96,6 @@ void UnitParams::setRunDuration(uint8_t v)
 
     if (_runDuration != v)
     {
-        _isChanged = true;
         _runDuration = v;
     }
 }
@@ -131,31 +117,52 @@ unsigned long UnitParams::getRunFrequency()
 
 void UnitParams::setRunFrequency(unsigned long v)
 {
-    if (v > 86400) // Max 24h
+    if (v > 86400000) // Max 24h
     {
-        v = 86400;
+        v = 86400000;
     }
 
-    if (v < 3600) // Min 1h
+    if (v < 30000) // Min 30s
     {
-        v = 3600;
+        v = 30000;
     }
 
-    if (_runDuration != v)
+    if (_runFrequency != v)
     {
-        _isChanged = true;
         _runFrequency = v;
     }
 }
 
 void UnitParams::incRunFrequency()
 {
-    setRunFrequency(_runFrequency + 600);
+    if (_runFrequency < 900000)
+    { // < 15min
+        setRunFrequency(_runFrequency + 30000);
+    }
+    else if (_runFrequency < 3600000)
+    {
+        setRunFrequency(_runFrequency + 600000);
+    }
+    else
+    {
+        setRunFrequency(_runFrequency + 900000);
+    }
 }
 
 void UnitParams::decRunFrequency()
 {
-    setRunFrequency(_runFrequency - 600);
+    if (_runFrequency < 900000)
+    { // < 15min
+        setRunFrequency(_runFrequency - 30000);
+    }
+    else if (_runFrequency < 3600000)
+    {
+        setRunFrequency(_runFrequency - 600000);
+    }
+    else
+    {
+        setRunFrequency(_runFrequency - 900000);
+    }
 }
 
 unsigned long UnitParams::getLastRunTime()
@@ -167,7 +174,6 @@ void UnitParams::setLastRunTime(unsigned long v)
 {
     if (_lastRunTime != v)
     {
-        _isChanged = true;
         _lastRunTime = v;
     }
 }
@@ -181,7 +187,6 @@ void UnitParams::setCurrentHumidity(uint8_t v)
 {
     if (_currentHumidity != v)
     {
-        _isChanged = true;
         _currentHumidity = v;
     }
 }

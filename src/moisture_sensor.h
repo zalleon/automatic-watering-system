@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #define _MOISTURE_SENSOR_INIT_TIMEOUT 500 // initialization timeout
-#define _MOISTURE_SENSOR_MIN_VALUE 943    // Sensor value on air
+#define _MOISTURE_SENSOR_MIN_VALUE 780    // Sensor value on air
 #define _MOISTURE_SENSOR_MAX_VALUE 431    // Sensor value in water
 
 class MoistureSensor
@@ -60,8 +60,8 @@ public:
     // Read sensor data
     int rawValue = analogRead(_dataPin);
 
-    //Serial.print("Raw humidity: ");
-    //Serial.println(rawValue);
+    Serial.print(F("Raw sensor data: "));
+    Serial.println(rawValue);
 
     // Convert raw data to percents
     int8_t value = map(rawValue, _MOISTURE_SENSOR_MIN_VALUE, _MOISTURE_SENSOR_MAX_VALUE, 0, 100);

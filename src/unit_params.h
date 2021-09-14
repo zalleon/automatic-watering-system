@@ -16,10 +16,6 @@ private:
 public:
   UnitParams(uint8_t minHumidity, uint8_t maxHumidity, uint8_t runDuration, unsigned long runFrequency);
 
-  bool isChanged();
-
-  void commitChanes();
-
   uint8_t getMinHumidity();
 
   void setMinHumidity(uint8_t v);
